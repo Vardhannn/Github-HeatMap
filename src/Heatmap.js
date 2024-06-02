@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import './Heatmap.css';
 
-const generateDateArray = () => {
+const generateDateArray = (year) => {
   const months = Array.from({ length: 12 }, (_, monthIndex) => {
     const month = [];
-    const currentDate = new Date(new Date().getFullYear(), monthIndex, 1);
+    const currentDate = new Date(year, monthIndex, 1);
     while (currentDate.getMonth() === monthIndex) {
       month.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
@@ -22,7 +22,20 @@ const getMonthLabels = () => {
   });
 };
 
+const getYearOptions = (startYear) => {
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let year = startYear; year <= currentYear; year++) {
+    years.push(year);
+  }
+  return years;
+};
+
 const Heatmap = () => {
+  const startYear = 2020; // Modify as needed
+  const yearOptions = getYearOptions(startYear);
+
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [contributions, setContributions] = useState(
     JSON.parse(localStorage.getItem('contributions')) || {}
   );
@@ -33,8 +46,16 @@ const Heatmap = () => {
     localStorage.setItem('contributions', JSON.stringify(contributions));
   }, [contributions]);
 
+  const handleYearChange = (event) => {
+    setSelectedYear(Number(event.target.value));
+  };
+
   const handleAddContribution = () => {
-    const newContributions = { ...contributions, [dateInput]: countInput };
+    const yearContributions = contributions[selectedYear] || {};
+    const newContributions = {
+      ...contributions,
+      [selectedYear]: { ...yearContributions, [dateInput]: countInput },
+    };
     setContributions(newContributions);
     setDateInput('');
     setCountInput('');
@@ -44,18 +65,20 @@ const Heatmap = () => {
     setContributions({});
   };
 
-  const months = generateDateArray();
+  const months = generateDateArray(selectedYear);
   const monthLabels = getMonthLabels();
   const weekLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <div className="heatmap-container">
-      <div className="months-row">
-        {monthLabels.map((month, index) => (
-          <div key={index} className="month-label">
-            {month}
-          </div>
-        ))}
+      <div className="header">
+        <div className="months-row">
+          {monthLabels.map((month, index) => (
+            <div key={index} className="month-label">
+              {month}
+            </div>
+          ))}
+        </div>
       </div>
       <div className="heatmap-grid">
         <div className="day-vertical">
@@ -69,7 +92,8 @@ const Heatmap = () => {
           <div key={monthIndex} className="month-block">
             {month.map((date, index) => {
               const formattedDate = date.toISOString().split('T')[0];
-              const count = contributions[formattedDate] || 0;
+              const yearContributions = contributions[selectedYear] || {};
+              const count = yearContributions[formattedDate] || 0;
               const intensity = Math.min(4, Math.floor(count / 5));
               return (
                 <div
@@ -81,12 +105,23 @@ const Heatmap = () => {
             })}
           </div>
         ))}
+        <div className='year-select-container'>
+        <select value={selectedYear} onChange={handleYearChange} className="year-select">
+          {yearOptions.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
+        </div>  
       </div>
       <div className="controls">
         <input
           type="date"
           value={dateInput}
           onChange={(e) => setDateInput(e.target.value)}
+          min={`${selectedYear}-01-01`}
+          max={`${selectedYear}-12-31`}
         />
         <input
           type="number"

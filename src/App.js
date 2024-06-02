@@ -6,7 +6,7 @@ import './App.css';
 function App() {
   return (
     <div className="App">
-      <h1>Contribution Heatmap</h1>
+      <h1>Health HeatMap</h1>
       <Heatmap />
     </div>
   );
